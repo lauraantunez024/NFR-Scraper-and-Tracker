@@ -1,6 +1,12 @@
 import csv, requests
 from bs4 import BeautifulSoup
+from pymongo import MongoClient 
+import argparse
 
+
+client = MongoClient('mongodb://localhost:27017')
+db = client['movie_tracker']
+movies_collection = db['movies']
 
 url =  'https://www.loc.gov/programs/national-film-preservation-board/film-registry/complete-national-film-registry-listing/'
 
@@ -14,17 +20,23 @@ if response.status_code == 200:
         rows = table_body.find_all('tr')
         for row in rows:
             film_name = row.find('th')
-            if film_name:
-                films.append(film_name.text.strip())
-    with open('films.csv', mode='w', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        writer.writerow(['Film Name'])
-        for film in films:
-            writer.writerow([film])
-    print('Films csv successfully created')
-else: 
-    print('Error {response.status_code}')
-
+            columns = row.find_all('td')
+            if film_name and len(columns) >= 1:
+                year = columns[0].text.strip()
+                movie_data = { 
+                              'title': film_name.text.strip(),
+                              'year': year,
+                              'watched': False,
+                              'rating': None,
+                              'comment': None
+                              }
+                if not movies_collection.find_one({"title": movie_data['title']}):
+                    movies_collection.insert_one(movie_data)
+                    print(f"Inserted: {movie_data['title']}")
+                else: 
+                    print(f"Movie '{movie_data['title']}' already exists in the database.")
+else:
+    print("Failed to fetch the webpage.")
 
 
 
