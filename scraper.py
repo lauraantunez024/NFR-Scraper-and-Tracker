@@ -2,6 +2,8 @@ import csv, requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient 
 import argparse
+import math
+import random
 
 # Set up MongoDB Connection 
 client = MongoClient('mongodb://localhost:27017')
@@ -61,11 +63,24 @@ def ratings_and_comments(title, rating, comments):
     else: 
         print(f"You might've seen that for no reason because it's not in here.... or you spelled it wrong.")
         
+def pickRandomUnwatched():
+    unwatched_movies = list(movies_collection.find({"watched": False}))
+   
+    if not unwatched_movies:
+        print("No unwatched films found.")
+        return
+    
+    random_movie = random.choice(unwatched_movies)
+    print(f"This is your random film: '{random_movie['title']}' ({random_movie['year']})")
+        
+        
+        
 def main():
     parser = argparse.ArgumentParser(description="Track, rate and comment the movies from the national film registry")
     parser.add_argument('--scrape', action='store_true', help='Scrape any freshly added movies')
     parser.add_argument('--watched', type=str, help='Usage: --watched "Movie Title"')
     parser.add_argument('--rate', type=str, nargs=3, metavar=('TITLE', 'RATING', 'COMMENTS'), help='Usage: --rate "Movie Title" 8 "Thoughts, critiques, etc"')
+    parser.add_argument('--pick_random', action='store_true', help='pick a random unwatched movie')
     
     args = parser.parse_args()
     
@@ -78,6 +93,9 @@ def main():
     if args.rate:
         title, rating, comments = args.rate
         ratings_and_comments(title, int(rating), comments)
+        
+    if args.pick_random:
+        pickRandomUnwatched()
     
 if __name__ == '__main__':
     main()
