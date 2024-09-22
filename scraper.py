@@ -63,25 +63,34 @@ def ratings_and_comments(title, rating, comments):
     else: 
         print(f"You might've seen that for no reason because it's not in here.... or you spelled it wrong.")
         
-def pickRandomUnwatched():
+# pick a random movie for me to watch that i haven't already. Either totally random or by year
+        
+def pickRandomUnwatched() :
     unwatched_movies = list(movies_collection.find({"watched": False}))
-   
     if not unwatched_movies:
-        print("No unwatched films found.")
+        print("All movies have been seen.")
         return
-    
     random_movie = random.choice(unwatched_movies)
     print(f"This is your random film: '{random_movie['title']}' ({random_movie['year']})")
         
         
-        
+def pickByYears(yearx, yeary):
+    moviesInRange = list(movies_collection.find({ "$and" : [ { "year": { "$gt" : yearx }}, { "year" : { "$lt" : yeary }}, {"watched": False}] }))
+    if not moviesInRange:
+        print("There are no movies between those time ranges")
+        return
+    random_movie = random.choice(moviesInRange)
+    print(f"This a random movie between {yearx} and {yeary} ----> {random_movie['title']} ({random_movie['year']})")
+    
+    
+      
 def main():
     parser = argparse.ArgumentParser(description="Track, rate and comment the movies from the national film registry")
     parser.add_argument('--scrape', action='store_true', help='Scrape any freshly added movies')
     parser.add_argument('--watched', type=str, help='Usage: --watched "Movie Title"')
     parser.add_argument('--rate', type=str, nargs=3, metavar=('TITLE', 'RATING', 'COMMENTS'), help='Usage: --rate "Movie Title" 8 "Thoughts, critiques, etc"')
     parser.add_argument('--pick_random', action='store_true', help='pick a random unwatched movie')
-    
+    parser.add_argument('--pick_by_year', type=str, nargs=2, metavar=('yearX', 'yearY'), help='Usage: --pick_by_year 1990 2010')
     args = parser.parse_args()
     
     if args.scrape:
@@ -96,6 +105,10 @@ def main():
         
     if args.pick_random:
         pickRandomUnwatched()
+    
+    if args.pickbyyear:
+        yearx, yeary = args.pickbyyear
+        pickByYears(yearx, yeary)
     
 if __name__ == '__main__':
     main()
