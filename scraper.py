@@ -1,5 +1,6 @@
 import csv, requests
 from bs4 import BeautifulSoup
+from flask import Blueprint, jsonify, request
 from pymongo import MongoClient 
 import argparse
 import math
@@ -9,6 +10,24 @@ import random
 client = MongoClient('mongodb://localhost:27017')
 db = client['movie_tracker']
 movies_collection = db['movies']
+url = f"http://www.omdbapi.com/?"
+OMDB_API_KEY = '36c390d2'
+# Fetch movies from OMDB
+
+def fetchMovies(title, year): 
+    payload = {
+        't': title,
+        'y': year,
+        'apikey': OMDB_API_KEY
+    }
+    response = requests.get(url, params=payload)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(response.json())
+    
+    
+
 
 # Scrape Website and add data to database
 def scrapeMovies():
@@ -25,22 +44,52 @@ def scrapeMovies():
                 columns = row.find_all('td')
                 if film_name and len(columns) >= 1:
                     year = columns[0].text.strip()
+                    title = film_name.text.strip() 
+                
                     movie_data = { 
-                                'title': film_name.text.strip(),
+                                'title': title,
                                 'year': year,
                                 'watched': False,
                                 'rating': None,
-                                'comments': None
+                                'comments': None,
+                                'genre': None,
+                                'country': None,
+                                'imDB_Rating': None,
+                                'runtime': None 
                                 }
                     if not movies_collection.find_one({"title": movie_data['title']}):
                         movies_collection.insert_one(movie_data)
+                        
                         print(f"Inserted: {movie_data['title']}")
                     else: 
                         print(f"Movie '{movie_data['title']}' already exists in the database.")
     else:
-        print("Failed to fetch the webpage.")
+            print("Failed to fetch the webpage.")
+        
+def addMovieDetails(title):
+    movie_title = movies_collection.find_one({"title": title})
+    searchable_title = movie_title['title'].replace(' ', '+')
+    omdb_data = fetchMovies(searchable_title, movie_title['year'])
+    if omdb_data and omdb_data.get('Response') == 'True':
+        movies_collection.update_one(
+            {"title": title}, 
+            {"$set": {"genre": omdb_data.get('Genre'), "country": omdb_data.get('Country'), "imDB_Rating": omdb_data.get('imdbRating'), "runtime": omdb_data.get('Runtime')}})
+        print(f"Movie details were added for {title}")
+    else:
+        print(f" somethings wrong =======> {omdb_data}")
+            
+            
 
 
+    
+    
+
+
+
+# 'genre': omdb_data.get('Genre'),
+# 'country': omdb_data.get('Country'),
+# 'imDB_Rating': omdb_data.get('imdbRating'),
+# 'runtime': omdb_data.get('Runtime') 
 
 # Mark movies as watched and rate them from CLI
 
@@ -82,6 +131,10 @@ def pickByYears(yearx, yeary):
     random_movie = random.choice(moviesInRange)
     print(f"This a random movie between {yearx} and {yeary} ----> {random_movie['title']} ({random_movie['year']})")
     
+
+
+
+    
     
       
 def main():
@@ -91,6 +144,7 @@ def main():
     parser.add_argument('--rate', type=str, nargs=3, metavar=('TITLE', 'RATING', 'COMMENTS'), help='Usage: --rate "Movie Title" 8 "Thoughts, critiques, etc"')
     parser.add_argument('--pick_random', action='store_true', help='pick a random unwatched movie')
     parser.add_argument('--pick_by_year', type=str, nargs=2, metavar=('yearX', 'yearY'), help='Usage: --pick_by_year 1990 2010')
+    parser.add_argument('--add_details', action='store_true')
     args = parser.parse_args()
     
     if args.scrape:
@@ -106,9 +160,14 @@ def main():
     if args.pick_random:
         pickRandomUnwatched()
     
-    if args.pickbyyear:
-        yearx, yeary = args.pickbyyear
+    if args.pick_by_year:
+        yearx, yeary = args.pick_by_year
         pickByYears(yearx, yeary)
+        
+    if args.add_details:
+        movies = movies_collection.find()
+        for movie in movies:
+            addMovieDetails(movie['title'])
     
 if __name__ == '__main__':
     main()
