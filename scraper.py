@@ -5,13 +5,16 @@ from pymongo import MongoClient
 import argparse
 import math
 import random
+from dotenv import load_dotenv
+import os
 
 # Set up MongoDB Connection 
 client = MongoClient('mongodb://localhost:27017')
 db = client['movie_tracker']
 movies_collection = db['movies']
 url = f"http://www.omdbapi.com/?"
-OMDB_API_KEY = '36c390d2'
+load_dotenv()
+OMDB_API_KEY = os.getenv('OMDB_API_KEY')
 # Fetch movies from OMDB
 
 def fetchMovies(title, year): 
@@ -27,15 +30,12 @@ def fetchMovies(title, year):
         print(response.json())
     
     
-
-
 # Scrape Website and add data to database
 def scrapeMovies():
     url =  'https://www.loc.gov/programs/national-film-preservation-board/film-registry/complete-national-film-registry-listing/'
     response = requests.get(url)
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, 'html.parser')
-        films = []
         table_body = soup.find('tbody')
         if table_body:
             rows = table_body.find_all('tr')
@@ -45,7 +45,6 @@ def scrapeMovies():
                 if film_name and len(columns) >= 1:
                     year = columns[0].text.strip()
                     title = film_name.text.strip() 
-                
                     movie_data = { 
                                 'title': title,
                                 'year': year,
@@ -55,7 +54,8 @@ def scrapeMovies():
                                 'genre': None,
                                 'country': None,
                                 'imDB_Rating': None,
-                                'runtime': None 
+                                'runtime': None,
+                                'imDB_ID': None
                                 }
                     if not movies_collection.find_one({"title": movie_data['title']}):
                         movies_collection.insert_one(movie_data)
@@ -73,23 +73,12 @@ def addMovieDetails(title):
     if omdb_data and omdb_data.get('Response') == 'True':
         movies_collection.update_one(
             {"title": title}, 
-            {"$set": {"genre": omdb_data.get('Genre'), "country": omdb_data.get('Country'), "imDB_Rating": omdb_data.get('imdbRating'), "runtime": omdb_data.get('Runtime')}})
+            {"$set": {"genre": omdb_data.get('Genre'), "country": omdb_data.get('Country'), "imDB_Rating": omdb_data.get('imdbRating'), "runtime": omdb_data.get('Runtime'), "imDB_ID": omdb_data.get('imdbID')}})
         print(f"Movie details were added for {title}")
     else:
         print(f" somethings wrong =======> {omdb_data}")
             
             
-
-
-    
-    
-
-
-
-# 'genre': omdb_data.get('Genre'),
-# 'country': omdb_data.get('Country'),
-# 'imDB_Rating': omdb_data.get('imdbRating'),
-# 'runtime': omdb_data.get('Runtime') 
 
 # Mark movies as watched and rate them from CLI
 
@@ -130,7 +119,8 @@ def pickByYears(yearx, yeary):
         return
     random_movie = random.choice(moviesInRange)
     print(f"This a random movie between {yearx} and {yeary} ----> {random_movie['title']} ({random_movie['year']})")
-    
+
+
 
 
 
@@ -139,12 +129,12 @@ def pickByYears(yearx, yeary):
       
 def main():
     parser = argparse.ArgumentParser(description="Track, rate and comment the movies from the national film registry")
-    parser.add_argument('--scrape', action='store_true', help='Scrape any freshly added movies')
-    parser.add_argument('--watched', type=str, help='Usage: --watched "Movie Title"')
-    parser.add_argument('--rate', type=str, nargs=3, metavar=('TITLE', 'RATING', 'COMMENTS'), help='Usage: --rate "Movie Title" 8 "Thoughts, critiques, etc"')
-    parser.add_argument('--pick_random', action='store_true', help='pick a random unwatched movie')
-    parser.add_argument('--pick_by_year', type=str, nargs=2, metavar=('yearX', 'yearY'), help='Usage: --pick_by_year 1990 2010')
-    parser.add_argument('--add_details', action='store_true')
+    parser.add_argument('-s', '--scrape', action='store_true', help='Scrape any freshly added movies')
+    parser.add_argument('-w', '--watched', type=str, help='Usage: --watched "Movie Title"')
+    parser.add_argument('-r', '--rate', type=str, nargs=3, metavar=('TITLE', 'RATING', 'COMMENTS'), help='Usage: --rate "Movie Title" 8 "Thoughts, critiques, etc"')
+    parser.add_argument('-random', '--pick_random', action='store_true', help='pick a random unwatched movie')
+    parser.add_argument('-y', '--pick_by_year', type=str, nargs=2, metavar=('yearX', 'yearY'), help='Usage: --pick_by_year 1990 2010')
+    parser.add_argument('-d', '--add_details', action='store_true')
     args = parser.parse_args()
     
     if args.scrape:

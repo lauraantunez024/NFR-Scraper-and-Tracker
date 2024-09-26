@@ -1,14 +1,17 @@
 from flask import Flask, jsonify, request
 from pymongo import MongoClient
+from flask_cors import CORS
+
 
 app = Flask(__name__)
+CORS(app) 
 
 client = MongoClient('mongodb://localhost:27017')
 db = client['movie_tracker']
 movies_collection = db['movies']
 
 
-@app.route('/movies', methods=['GET'])
+@app.route('/api/movies', methods=['GET'])
 def getMovies():
     movies = list(movies_collection.find({}, {'_id':0}))
     return jsonify(movies)
