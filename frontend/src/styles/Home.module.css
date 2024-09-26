@@ -18,6 +18,7 @@
 
 .card_details {
   display: block;
+  grid-row-start: 3;
 
 }
 
@@ -25,7 +26,6 @@
   max-width: 15rem;
   max-height: 20rem;
 }
-
 
 .movie_container {
   display: grid;
