@@ -15,6 +15,9 @@ movies_collection = db['movies']
 url = f"http://www.omdbapi.com/?"
 load_dotenv()
 OMDB_API_KEY = os.getenv('OMDB_API_KEY')
+RADARR_API_KEY = os.getenv('RADARR_API_KEY')
+ADDRESS = os.getenv('ADDRESS')
+
 # Fetch movies from OMDB
 
 def fetchMovies(title, year): 
@@ -102,6 +105,48 @@ def ratings_and_comments(title, rating, comments):
         print(f"You might've seen that for no reason because it's not in here.... or you spelled it wrong.")
         
 # pick a random movie for me to watch that i haven't already. Either totally random or by year
+
+def add_movie_to_radarr(title, year):
+    movie = movies_collection.find_one({"title": title})
+    movie_id = movie['imDB_ID']
+
+    RADARR_MOVIE_URL = f'{ADDRESS}/api/v3/movie?apikey={RADARR_API_KEY}'
+    RADARR_LOOKUP_URL = f"{ADDRESS}/api/v3/movie/lookup/imdb?imdbId={movie_id}&apikey={RADARR_API_KEY}"
+    
+    headers = {'X-Api-Key': RADARR_API_KEY}
+
+    lookup_response = requests.get(RADARR_LOOKUP_URL, headers=headers)
+    
+    # Payload for Radarr API to search for a movie
+    payload = lookup_response.json()
+    
+    headers = {'X-Api-Key': RADARR_API_KEY}
+    
+    payload["rootFolderPath"] = f"../Volumes/Laura/Media/Movies"  # Change this to your actual media directory
+    payload["path"] = f"../Volumes/Laura/Media/Movies/{movie['title']} {movie['year']}"  # Change this to your actual media directory
+    payload["monitored"] = True 
+    payload["qualityProfileId"] = 3
+    payload["tags"] = "national-film-registry"
+    payload['addOptions'] = {
+    'searchForMovie': True,
+    "addMethod": "manual",
+    "ignoreEpisodesWithFiles": False,
+    "ignoreEpisodesWithoutFiles": False,
+    "monitor": "movieOnly"
+    }
+
+    
+    response = requests.post(RADARR_MOVIE_URL, json=payload, headers=headers)
+    
+    if response.status_code == 201:
+        print(f"'{title}' ({year}) has been added to Radarr and is being searched for.")
+        # keeping below for debugging
+        # print(f"{response.content} ======================= {payload}")
+
+    elif response.status_code == 400:
+        print(f"Movie '{title}' already exists in Radarr or could not be added.")
+    else:
+        print(f"{response.content} ======================= {payload}")
         
 def pickRandomUnwatched() :
     unwatched_movies = list(movies_collection.find({"watched": False}))
@@ -109,6 +154,11 @@ def pickRandomUnwatched() :
         print("All movies have been seen.")
         return
     random_movie = random.choice(unwatched_movies)
+    title = random_movie['title']
+    year = random_movie['year']
+    
+    # print(f"This is your random film: '{title}' ({year})")
+    add_movie_to_radarr(title, year)
     print(f"This is your random film: '{random_movie['title']}' ({random_movie['year']})")
         
         
@@ -118,15 +168,10 @@ def pickByYears(yearx, yeary):
         print("There are no movies between those time ranges")
         return
     random_movie = random.choice(moviesInRange)
+    add_movie_to_radarr(random_movie['title'], random_movie['year'])
     print(f"This a random movie between {yearx} and {yeary} ----> {random_movie['title']} ({random_movie['year']})")
 
-
-
-
-
-    
-    
-      
+          
 def main():
     parser = argparse.ArgumentParser(description="Track, rate and comment the movies from the national film registry")
     parser.add_argument('-s', '--scrape', action='store_true', help='Scrape any freshly added movies')

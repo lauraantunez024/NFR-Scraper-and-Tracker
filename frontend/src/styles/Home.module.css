@@ -1,5 +1,4 @@
 
-
 .card {
   display: grid;
   grid-template-rows: 3fr 3fr 3fr;
@@ -19,12 +18,22 @@
 .card_details {
   display: block;
   grid-row-start: 3;
-
 }
+
+/* .card_area {
+  flex-direction: column;
+  grid-template-columns: 3fr 3fr 3fr;
+} */
 
 .card_image {
   max-width: 15rem;
   max-height: 20rem;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
 }
 
 .movie_container {
