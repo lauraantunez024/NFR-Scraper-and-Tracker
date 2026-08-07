@@ -54,10 +54,12 @@ def scrapeMovies():
                 columns = row.find_all('td')
                 if film_name and len(columns) >= 1:
                     year = columns[0].text.strip()
+                    yearInducted = columns[1].text.strip()
                     title = film_name.text.strip() 
                     movie_data = { 
                                 'title': title,
                                 'year': year,
+                                'yearInducted': yearInducted,
                                 'watched': False,
                                 'rating': None,
                                 'comments': None,
@@ -65,7 +67,7 @@ def scrapeMovies():
                                 'country': None,
                                 'imDB_Rating': None,
                                 'runtime': None,
-                                'imDB_ID': None
+                                'imDB_ID': None,
                                 }
                     if not movies_collection.find_one({"title": movie_data['title']}):
                         movies_collection.insert_one(movie_data)
@@ -73,6 +75,11 @@ def scrapeMovies():
                         print(f"Inserted: {movie_data['title']}")
                     else: 
                         print(f"Movie '{movie_data['title']}' already exists in the database.")
+                    if not movies_collection.find_one({"yearInducted": movie_data['yearInducted']}):
+                        movies_collection.update_one({"yearInducted": movie_data['yearInducted']}, {"$set": {"yearInducted": movie_data['yearInducted']}})
+                        print(f"Inserted: {movie_data['yearInducted']}")
+                    else:
+                        print(f"Year '{movie_data['yearInducted']}' already exists in the database.")
     else:
             print("Failed to fetch the webpage.")
         
@@ -169,13 +176,20 @@ def pickRandomUnwatched() :
         
         
 def pickByYears(yearx, yeary):
+    # Makes the years chosen inclusive 
+    if yearx > yeary:
+        yearx = str(int(yearx) + 1)
+        yeary = str(int(yeary) - 1)
+    else: 
+        yeary = str(int(yeary) + 1)
+        yearx = str(int(yearx) - 1)
     moviesInRange = list(movies_collection.find({ "$and" : [ { "year": { "$gt" : yearx }}, { "year" : { "$lt" : yeary }}, {"watched": False}] }))
     if not moviesInRange:
         print("There are no movies between those time ranges")
         return
     random_movie = random.choice(moviesInRange)
-    add_movie_to_radarr(random_movie['title'], random_movie['year'])
     print(f"This a random movie between {yearx} and {yeary} ----> {random_movie['title']} ({random_movie['year']})")
+    # add_movie_to_radarr(random_movie['title'], random_movie['year'])
 
           
 def main():
@@ -184,7 +198,7 @@ def main():
     parser.add_argument('-w', '--watched', type=str, help='Usage: --watched "Movie Title"')
     parser.add_argument('-r', '--rate', type=str, nargs=3, metavar=('TITLE', 'RATING', 'COMMENTS'), help='Usage: --rate "Movie Title" 8 "Thoughts, critiques, etc"')
     parser.add_argument('-random', '--pick_random', action='store_true', help='pick a random unwatched movie')
-    parser.add_argument('-y', '--pick_by_year', type=str, nargs=2, metavar=('yearX', 'yearY'), help='Usage: --pick_by_year 1990 2010')
+    parser.add_argument('-y', '--pick_by_year', type=int, nargs=2, metavar=('yearX', 'yearY'), help='Usage: --pick_by_year 1990 2010')
     parser.add_argument('-d', '--add_details', action='store_true')
     args = parser.parse_args()
     

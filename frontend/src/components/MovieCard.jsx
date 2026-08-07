@@ -1,4 +1,3 @@
-import styles from "@/styles/Home.module.css";
 import { useEffect, useState } from "react";
 
 require("dotenv").config({});
@@ -38,11 +37,11 @@ export default function MovieCard({ title, imdb_rating, year, movie_data }) {
     fetchTmDBData();
   }, []);
   return (
-    <div class={styles.card}>
-      <h1 class={styles.title}>{title}</h1>
+    <div className="min-w-[20vw] w-[30vw] min-h-[25vh] bg-(--secondary) text-(--primary) border border-black rounded-md p-4 flex flex-col gap-4">
+      <h1 className="text-center text-xl text-(--primary)">{title}</h1>
 
-      <img class={styles.card_image} src={imagePath} alt="womp" />
-      <div class={styles.card_details}>
+      <img className="" src={imagePath} alt={title} />
+      <div className="flex flex-row justify-between">
         <p>imdb rating: {imdb_rating}</p>
         <p>year: {year}</p>
       </div>

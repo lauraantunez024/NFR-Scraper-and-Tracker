@@ -1,12 +1,18 @@
 from flask import Flask, jsonify, request
 from pymongo import MongoClient
 from flask_cors import CORS
+from dotenv import load_dotenv
+from pymongo.server_api import ServerApi
+import os
 
 
 app = Flask(__name__)
 CORS(app) 
-
-client = MongoClient('mongodb://localhost:27017')
+load_dotenv()
+MONGO_PASSWORD = os.getenv('MONGO')
+ADDRESS = os.getenv('ADDRESS')
+uri = f"mongodb+srv://admin:{MONGO_PASSWORD}@nfr.8fo4vg6.mongodb.net/?appName=NFR"
+client = MongoClient(uri, server_api=ServerApi('1'))
 db = client['movie_tracker']
 movies_collection = db['movies']
 

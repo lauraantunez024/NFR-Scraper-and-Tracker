@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import MovieCard from "@/components/MovieCard";
-import styles from "@/styles/Home.module.css";
-
 export default function Home() {
   const [movies, setMovies] = useState([]);
 
   useEffect(() => {
     // Fetch movies from Flask API
     const fetchDBMovies = async () => {
-      const res = await fetch("http://localhost:5000/api/movies");
+      const res = await fetch("http://127.0.0.1:5000/api/movies");
       const data = await res.json();
       console.log(data);
       setMovies(data);
@@ -18,13 +16,15 @@ export default function Home() {
   }, []);
 
   return (
-    <div class={styles.row}>
-      <h1>Movie List</h1>
-      <div class={styles.card_area}>
+    <div className="p-4 max-w-[100vw]">
+
+    <div className="flex flex-col gap-4 p-4 flex-wrap wrap">
+      <h1 className="font-bold text-3xl">National Film Registry</h1>
+      <div className="grid grid-cols-3 grid-flow-row gap-4">
         {movies.map((movie, index) => (
-          <div key={index}>
+          <div key={index} className="flex flex-row">
             <MovieCard
-              class={styles.movie_container}
+              className=""
               title={movie.title}
               year={movie.year}
               imdb_rating={movie.imDB_Rating}
@@ -33,6 +33,7 @@ export default function Home() {
           </div>
         ))}
       </div>
+    </div>
     </div>
   );
 }
