@@ -2,6 +2,7 @@ import csv, requests
 from bs4 import BeautifulSoup
 from flask import Blueprint, jsonify, request
 from pymongo import MongoClient 
+from pymongo.server_api import ServerApi
 import argparse
 import math
 import random
@@ -9,15 +10,21 @@ from dotenv import load_dotenv
 import os
 
 # Set up MongoDB Connection 
-client = MongoClient('mongodb://localhost:27017')
-db = client['movie_tracker']
-movies_collection = db['movies']
-url = f"http://www.omdbapi.com/?"
 load_dotenv()
 OMDB_API_KEY = os.getenv('OMDB_API_KEY')
 RADARR_API_KEY = os.getenv('RADARR_API_KEY')
 ADDRESS = os.getenv('ADDRESS')
-
+MONGO_PASSWORD = os.getenv('MONGO')
+uri = f"mongodb+srv://admin:{MONGO_PASSWORD}@nfr.8fo4vg6.mongodb.net/?appName=NFR"
+client = MongoClient(uri, server_api=ServerApi('1'))
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
+db = client['movie_tracker']
+movies_collection = db['movies']
+url = f"http://www.omdbapi.com/?"
 # Fetch movies from OMDB
 
 def fetchMovies(title, year): 
@@ -157,7 +164,6 @@ def pickRandomUnwatched() :
     title = random_movie['title']
     year = random_movie['year']
     
-    # print(f"This is your random film: '{title}' ({year})")
     add_movie_to_radarr(title, year)
     print(f"This is your random film: '{random_movie['title']}' ({random_movie['year']})")
         
