@@ -5,11 +5,12 @@ require("dotenv").config({});
 export default function Home() {
   const [movies, setMovies] = useState([]);
   const MONGODB_URI = process.env.MONGODB_URI;
+  const ATLAS_URI = process.env.ATLAS_URI;
 
   useEffect(() => {
     // Fetch movies from Flask API
     const fetchDBMovies = async () => {
-      const res = await fetch(MONGODB_URI);
+      const res = await fetch(ATLAS_URI);
       const data = await res.json();
       console.log(`Movies from database: ${data}`);
       setMovies(data);

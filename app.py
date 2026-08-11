@@ -12,7 +12,6 @@ load_dotenv()
 MONGO_PASSWORD = os.getenv('MONGO')
 ADDRESS = os.getenv('ADDRESS')
 uri = f"mongodb+srv://admin:{MONGO_PASSWORD}@nfr.8fo4vg6.mongodb.net/?appName=NFR"
-MONGODB_URI=os.getenv('MONGODB_URI')
 client = MongoClient(uri, server_api=ServerApi('1'))
 db = client['movie_tracker']
 movies_collection = db['movies']
@@ -23,13 +22,13 @@ def getMovies():
     movies = list(movies_collection.find({}, {'_id':0}))
     return jsonify(movies)
 
-@app.route('/movies/watched', methods=['POST'])
+@app.route('/api/movies/watched', methods=['POST'])
 def markAsWatched():
     title = request.json.get('title')
     movies_collection.update_one({"title": title}, {"$set": {"watched": True}})
     return jsonify({"message": f"Marked '{title}' as watched"})
 
-@app.route('/movies/rate', methods=['POST'])
+@app.route('/api/movies/rate', methods=['POST'])
 def rate_movie():
     title = request.json.get('title')
     rating = request.json.get('rating')
