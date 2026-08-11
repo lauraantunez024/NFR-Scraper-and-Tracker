@@ -27,10 +27,10 @@ movies_collection = db['movies']
 url = f"http://www.omdbapi.com/?"
 # Fetch movies from OMDB
 
-def fetchMovies(title, year): 
+def fetchMovies(title): 
     payload = {
         't': title,
-        'y': year,
+        # 'y': year,
         'apikey': OMDB_API_KEY
     }
     response = requests.get(url, params=payload)
@@ -68,6 +68,7 @@ def scrapeMovies():
                                 'imDB_Rating': None,
                                 'runtime': None,
                                 'imDB_ID': None,
+                                'plot': None,
                                 }
                     if not movies_collection.find_one({"title": movie_data['title']}):
                         movies_collection.insert_one(movie_data)
@@ -85,15 +86,15 @@ def scrapeMovies():
         
 def addMovieDetails(title):
     movie_title = movies_collection.find_one({"title": title})
-    searchable_title = movie_title['title'].replace(' ', '+')
-    omdb_data = fetchMovies(searchable_title, movie_title['year'])
+    searchable_title = movie_title['title'].replace(':', '%3A').replace(' ', '+')
+    omdb_data = fetchMovies(searchable_title)
     if omdb_data and omdb_data.get('Response') == 'True':
         movies_collection.update_one(
             {"title": title}, 
-            {"$set": {"genre": omdb_data.get('Genre'), "country": omdb_data.get('Country'), "imDB_Rating": omdb_data.get('imdbRating'), "runtime": omdb_data.get('Runtime'), "imDB_ID": omdb_data.get('imdbID')}})
-        print(f"Movie details were added for {title}")
+            {"$set": {"genre": omdb_data.get('Genre'), "country": omdb_data.get('Country'), "plot": omdb_data.get('Plot'), "imDB_Rating": omdb_data.get('imdbRating'), "runtime": omdb_data.get('Runtime'), "imDB_ID": omdb_data.get('imdbID')}})
+        # print(f"Movie details were added for {title}")
     else:
-        print(f" somethings wrong =======> {omdb_data}")
+        print(f" somethings wrong for {title} ({movie_title['year']})=======> {omdb_data}")
             
             
 
@@ -200,6 +201,7 @@ def main():
     parser.add_argument('-random', '--pick_random', action='store_true', help='pick a random unwatched movie')
     parser.add_argument('-y', '--pick_by_year', type=int, nargs=2, metavar=('yearX', 'yearY'), help='Usage: --pick_by_year 1990 2010')
     parser.add_argument('-d', '--add_details', action='store_true')
+    parser.add_argument('-u', '--update_details', help='Usage: --update_details "Movie Title"')
     args = parser.parse_args()
     
     if args.scrape:
