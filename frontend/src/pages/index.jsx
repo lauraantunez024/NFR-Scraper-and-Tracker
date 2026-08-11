@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import MovieCard from "@/components/MovieCard";
+require("dotenv").config({});
+
 export default function Home() {
   const [movies, setMovies] = useState([]);
+  const MONGODB_URI = process.env.MONGODB_URI;
 
   useEffect(() => {
     // Fetch movies from Flask API
     const fetchDBMovies = async () => {
-      const res = await fetch("http://127.0.0.1:5000/api/movies");
+      const res = await fetch(MONGODB_URI);
       const data = await res.json();
       console.log(`Movies from database: ${data}`);
       setMovies(data);

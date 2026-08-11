@@ -16,7 +16,9 @@ RADARR_API_KEY = os.getenv('RADARR_API_KEY')
 ADDRESS = os.getenv('ADDRESS')
 MONGO_PASSWORD = os.getenv('MONGO')
 uri = f"mongodb+srv://admin:{MONGO_PASSWORD}@nfr.8fo4vg6.mongodb.net/?appName=NFR"
-client = MongoClient(uri, server_api=ServerApi('1'))
+MONGO_URI=os.getenv('MONGODB_URI')
+ATLAS_URI=os.getenv('ATLAS_URI')
+client = MongoClient(ATLAS_URI, server_api=ServerApi('1'))
 try:
     client.admin.command('ping')
     print("Pinged your deployment. You successfully connected to MongoDB!")

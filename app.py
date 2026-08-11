@@ -12,6 +12,7 @@ load_dotenv()
 MONGO_PASSWORD = os.getenv('MONGO')
 ADDRESS = os.getenv('ADDRESS')
 uri = f"mongodb+srv://admin:{MONGO_PASSWORD}@nfr.8fo4vg6.mongodb.net/?appName=NFR"
+MONGODB_URI=os.getenv('MONGODB_URI')
 client = MongoClient(uri, server_api=ServerApi('1'))
 db = client['movie_tracker']
 movies_collection = db['movies']
