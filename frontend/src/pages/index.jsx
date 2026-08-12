@@ -6,7 +6,7 @@ export default function Home() {
   const [movies, setMovies] = useState([]);
   const MONGODB_URI = process.env.MONGODB_URI;
   const ATLAS_URI = process.env.ATLAS_URI;
-  const URI = process.env.URI;
+  const URI = process.env.NEXT_PUBLIC_URI;
   useEffect(() => {
     // Fetch movies from Flask API
     const fetchDBMovies = async () => {
