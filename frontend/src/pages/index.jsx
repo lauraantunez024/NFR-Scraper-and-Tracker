@@ -3,7 +3,7 @@ import MovieCard from "@/components/MovieCard";
 
 export default function Home() {
   const [movies, setMovies] = useState([]);
-  const API_URL = process.env.NEXT_PUBLIC_URI;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   useEffect(() => {
     // Fetch movies from Flask API
     const fetchDBMovies = async () => {
