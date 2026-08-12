@@ -7,8 +7,9 @@ export default function Home() {
   useEffect(() => {
     // Fetch movies from Flask API
     const fetchDBMovies = async () => {
-      console.log(`URI: ${API_URL}/api/movies`);
-      const res = await fetch(API_URL);
+      const URL = `${API_URL}/api/movies`;
+      console.log(URL);
+      const res = await fetch(URL);
       const data = await res.json();
       console.log(`Movies from database: ${data}`);
       setMovies(data);
