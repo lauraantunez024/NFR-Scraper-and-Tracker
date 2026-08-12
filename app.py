@@ -19,14 +19,11 @@ movies_collection = db['movies']
 @app.route("/", methods=["GET", "HEAD"])
 def health():
     return jsonify({"status": "ok"}), 200
+
 @app.route('/api/movies', methods=['GET'])
 def getMovies():
-    try:
-        movies = list(movies_collection.find({}, {'_id': 0}))
-        return jsonify(movies)
-    except Exception as e:
-        app.logger.exception(e)
-        return jsonify({"error": str(e)}), 500
+    movies = list(movies_collection.find({}, {'_id':0}))
+    return jsonify(movies)
 
 @app.route('/api/movies/watched', methods=['POST'])
 def markAsWatched():
