@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 require("dotenv").config({});
 
-export default function MovieCard({ title, imdb_rating, year, movie_data, logoPath }) {
+export default function MovieCard({ title, imdb_rating, year, movie_data }) {
   const [showDetails, setShowDetails] = useState(false);
   const logoPath = movie_data?.LogoImage;
   return (
