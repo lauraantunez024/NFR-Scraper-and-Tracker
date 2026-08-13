@@ -4,6 +4,8 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from pymongo.server_api import ServerApi
 import os
+from bson.objectid import ObjectId
+from bson.errors import InvalidId
 
 
 app = Flask(__name__)
@@ -15,6 +17,9 @@ uri = os.getenv('MONGODB_URI')
 client = MongoClient(uri, server_api=ServerApi('1'))
 db = client['movie_tracker']
 movies_collection = db['movies']
+ITEMS_PER_PAGE = 24
+
+
 
 @app.route("/", methods=["GET", "HEAD"])
 def health():
@@ -22,8 +27,34 @@ def health():
 
 @app.route('/api/movies', methods=['GET'])
 def getMovies():
+    limit = min(int(request.args.get('limit', ITEMS_PER_PAGE)), 50)
+    cursor = request.args.get('cursor')
+    
+    query = {}
+    
+    if cursor:
+        try:
+            query['_id'] = {'$gt': ObjectId(cursor)}
+        except InvalidId:
+            return({'error': 'Invalid cursor'}), 400
+        
+    docs = list(movies_collection.find(query.sort('_id', 1).limit(limit + 1)))
+    
+    has_more = len(docs) > limit
+    page = docs[:limit]
+    
+    movies = []
+    for doc in page:
+        doc_id = str(doc['_id'])
+        doc.pop('_id')
+        movies.append(doc)
+    next_cursor = str(page[-1]['_id']) if has_more else None 
+    
     movies = list(movies_collection.find({}, {'_id':0}))
-    return jsonify(movies)
+    return jsonify({
+                    'movies': movies,
+                    'nextCursor': next_cursor,
+                    'hasMore': has_more})
 
 @app.route('/api/movies/watched', methods=['POST'])
 def markAsWatched():

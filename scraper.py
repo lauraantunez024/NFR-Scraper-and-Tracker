@@ -8,10 +8,12 @@ import math
 import random
 from dotenv import load_dotenv
 import os
+import time
 
 # Set up MongoDB Connection 
 load_dotenv()
 OMDB_API_KEY = os.getenv('OMDB_API_KEY')
+TMDB_API_KEY = os.getenv('NEXT_PUBLIC_TMDB_API_KEY')
 RADARR_API_KEY = os.getenv('RADARR_API_KEY')
 ADDRESS = os.getenv('ADDRESS')
 MONGO_PASSWORD = os.getenv('MONGO')
@@ -25,21 +27,9 @@ except Exception as e:
     print(e)
 db = client['movie_tracker']
 movies_collection = db['movies']
-url = f"http://www.omdbapi.com/?"
-# Fetch movies from OMDB
+tmdbUrl = f"https://api.themoviedb.org/3"
 
-def fetchMovies(title): 
-    payload = {
-        't': title,
-        # 'y': year,
-        'apikey': OMDB_API_KEY
-    }
-    response = requests.get(url, params=payload)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print(response.json())
-    
+
     
 # Scrape Website and add data to database
 def scrapeMovies():
@@ -70,6 +60,11 @@ def scrapeMovies():
                                 'runtime': None,
                                 'imDB_ID': None,
                                 'plot': None,
+                                'posterImage': None,
+                                'LogoImage': None,
+                                'tmdb_id': None,
+                                'budget' : None,
+                                
                                 }
                     if not movies_collection.find_one({"title": movie_data['title']}):
                         movies_collection.insert_one(movie_data)
@@ -84,20 +79,91 @@ def scrapeMovies():
                         print(f"Year '{movie_data['yearInducted']}' already exists in the database.")
     else:
             print("Failed to fetch the webpage.")
+            
+            
+def tmdb_get(path, params=None):
+    params = params or {}
+    params["api_key"] = TMDB_API_KEY
+    response = requests.get(f"{tmdbUrl}{path}", params=params, timeout=15)
+    response.raise_for_status()
+    return response.json()
+
+def search_tmdb_movie(title, year):
+    data = tmdb_get("search/movie", {
+        "query": title,
+        "year": year,
+        "include_adult": "false"
+    })
+    results = data.get("results", [])
+    if not results:
+        return None
+    return results[0]
+
+def fetch_tmdb_images(tmdb_id):
+    return tmdb_get(f"/movie/{tmdb_id}", {
+        "append_to_response": "external_ids"
+    })
+
+def build_logo_url(images_data):
+    logos = images_data.get("logos") or []
+    if not logos:
+        return None
+    return f"https://image.tmdb.org/t/p/w200{logos[0]['file_path']}"
+
+def build_poster_url(images_data, details_data):
+    posters = images_data.get("posters") or []
+    if posters:
+        return f"https://image.tmdb.org/t/p/w500"
+    poster_path = details_data.get("poster_path")
+    if poster_path:
+        return f"https://image.tmdb.org/t/p/w500{poster_path}"
+    return None
+
+def addTmdbDetails(title):
+    movie = movies_collection.find_one({"title": title})
+    if not movie:
+        print(f"{title} movie not found")
+        return
+    if movie.get("tmdb_id"):
+        print(f"Movie aleady enriched {title}")
+        return
+    try:
+        search_result = search_tmdb_movie(movie["title"], movie["year"])
+        if not search_result:
+            print(f"No TMDB match for {title}")
+            return
         
-def addMovieDetails(title):
-    movie_title = movies_collection.find_one({"title": title})
-    searchable_title = movie_title['title'].replace(':', '%3A').replace(' ', '+')
-    omdb_data = fetchMovies(searchable_title)
-    if omdb_data and omdb_data.get('Response') == 'True':
-        movies_collection.update_one(
-            {"title": title}, 
-            {"$set": {"genre": omdb_data.get('Genre'), "country": omdb_data.get('Country'), "plot": omdb_data.get('Plot'), "imDB_Rating": omdb_data.get('imdbRating'), "runtime": omdb_data.get('Runtime'), "imDB_ID": omdb_data.get('imdbID')}})
-        # print(f"Movie details were added for {title}")
-    else:
-        print(f" somethings wrong for {title} ({movie_title['year']})=======> {omdb_data}")
-            
-            
+        tmdb_id = search_result["id"]
+        details = fetch_tmdb_images(tmdb_id)
+        
+        images = fetch_tmdb_images(tmdb_id)
+        genres = ", ".join(g["name"] for g in details.get("genres", []))
+        countries = ", ".join(
+            c["name"] for c in details.get("production_countries", [])
+        )
+        imdb_id = details.get("external_ids", {}).get("imdb_id")
+        
+        update = {
+            "tmdb_id": tmdb_id,
+            "plot": details.get("overview"),
+            "runtime": f"{details.get('runtime')} min" if details.get("runtime") else None,
+            "genre": genres or None,
+            "country": countries or None,
+            "imDB_Rating": details.get("vote_average"),
+            "budget": details.get("budget"),
+            "posterImage": build_poster_url(images, details),
+            "LogoImage": build_logo_url(images)
+        }
+        
+        movies_collection.update_one({"title": title}, {"$set": update})
+        print(f"enriched ----> {title}")
+    except Exception as e:
+        print(f"Failed for {title}: {e}")
+        
+def enrich_all_tmdb():
+    movies = movies_collection.find({"tmdb_id": None})
+    for movie in movies:
+        addTmdbDetails(movie["title"])
 
 # Mark movies as watched and rate them from CLI
 
@@ -203,10 +269,14 @@ def main():
     parser.add_argument('-y', '--pick_by_year', type=int, nargs=2, metavar=('yearX', 'yearY'), help='Usage: --pick_by_year 1990 2010')
     parser.add_argument('-d', '--add_details', action='store_true')
     parser.add_argument('-u', '--update_details', help='Usage: --update_details "Movie Title"')
+    parser.add_argument('-t', '--tmdb_details', help='Usage: --tmdb_details "imdb_id"')
     args = parser.parse_args()
     
     if args.scrape:
         scrapeMovies()
+    
+    if args.add_details:
+        enrich_all_tmdb()
     
     if args.watched:
         watched_movie(args.watched)
@@ -222,11 +292,6 @@ def main():
         yearx, yeary = args.pick_by_year
         pickByYears(yearx, yeary)
         
-    if args.add_details:
-        movies = movies_collection.find()
-        for movie in movies:
-            addMovieDetails(movie['title'])
-    
 if __name__ == '__main__':
     main()
         

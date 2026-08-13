@@ -20,21 +20,9 @@ export default function MovieCard({ title, imdb_rating, year, movie_data }) {
         const movieDataResponse = await fetch(movieUrl);
 
         const movieData = await movieDataResponse.json();
-
-        setMovieData(movieData);
-        const posterDataResponse = await fetch(
-          `https://api.themoviedb.org/3/movie/${movieData.movie_results[0].id}/images?include_image_language=en&api_key=${api_key}`
-        );
-        const posterData = await posterDataResponse.json();
-        setPosterData(posterData);
-        if (posterData.logos[0] == null || movieData.imDB_ID === null) {
-          setLogoPath(null)
-        } else {
-          const image_link = `https://image.tmdb.org/t/p/w500${posterData.posters[0].file_path}`;
-          setImagePath(image_link);
-          const logo_link = `https://image.tmdb.org/t/p/w200${posterData.logos[0].file_path}`
-          setLogoPath(logo_link)
-        }
+        const logoPath = movieData.LogoImage
+        return logoPath
+        
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
