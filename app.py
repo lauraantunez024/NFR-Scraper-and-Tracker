@@ -38,17 +38,16 @@ def getMovies():
         except InvalidId:
             return({'error': 'Invalid cursor'}), 400
         
-    docs = list(movies_collection.find(query.sort('_id', 1).limit(limit + 1)))
+    docs = list(movies_collection.limit(limit + 1))
     
     has_more = len(docs) > limit
     page = docs[:limit]
+    next_cursor = str(page[-1]['_id']) if has_more else None 
     
     movies = []
     for doc in page:
-        doc_id = str(doc['_id'])
         doc.pop('_id')
         movies.append(doc)
-    next_cursor = str(page[-1]['_id']) if has_more else None 
     
     movies = list(movies_collection.find({}, {'_id':0}))
     return jsonify({
