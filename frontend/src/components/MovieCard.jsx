@@ -29,7 +29,7 @@ export default function MovieCard({ title, imdb_rating, year, movie_data }) {
           <p>year: {year}</p>
         </div>
           <span>
-            movie description: {plot}
+            movie description: {movie_data?.plot}
           </span>
       </div>
     </div>
