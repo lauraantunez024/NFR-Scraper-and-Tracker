@@ -40,7 +40,7 @@ export default function Home() {
 
 
     console.log(`Movies from database: ${data}`);
-    setMovies((prev) => [...preloadStyle, ...data.movies]);
+    setMovies((prev) => [...prev, ...data.movies]);
     setCursor(data.nextCursor)
     setHasMore(data.hasMore);
     setLoading(false);
@@ -69,8 +69,8 @@ export default function Home() {
                 imdb_rating={movie.imDB_Rating}
                 movie_data={movie}
                 year_inducted={movie.yearInducted}
-                plot={movie.plot}
-                logo={movie.LogoPath}
+                plot={movie_data.plot}
+                logo={movie.LogoImage}
               />
             </div>
           ))}
