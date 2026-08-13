@@ -68,9 +68,8 @@ export default function Home() {
                 year={movie.year}
                 imdb_rating={movie.imDB_Rating}
                 movie_data={movie}
-                year_inducted={movie.yearInducted}
-                plot={movie_data.plot}
-                logo={movie.LogoImage}
+                // year_inducted={movie.yearInducted}
+                // logo={movie.LogoImage}
               />
             </div>
           ))}
