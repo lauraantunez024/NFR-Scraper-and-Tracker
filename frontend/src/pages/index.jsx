@@ -40,7 +40,7 @@ export default function Home() {
 
 
     console.log(`Movies from database: ${data}`);
-    setMovies(data);
+    setMovies((prev) => [...preloadStyle, ...data.movies]);
     setCursor(data.nextCursor)
     setHasMore(data.hasMore);
     setLoading(false);
@@ -70,7 +70,7 @@ export default function Home() {
                 movie_data={movie}
                 year_inducted={movie.yearInducted}
                 plot={movie.plot}
-                logo={movie.plot}
+                logo={movie.LogoPath}
               />
             </div>
           ))}
