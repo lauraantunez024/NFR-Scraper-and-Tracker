@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import MovieCard from "@/components/MovieCard";
 
 
-
 export default function Home() {
   const [movies, setMovies] = useState([]);
   const [cursor, setCursor] = useState(null);
@@ -10,44 +9,45 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const observerRef = useRef(null);
+  const loadingRef = useRef(false);
+  const fetchDBMovies = useCallback(async (cursorParam = null) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: "24" });
+      if (cursorParam) params.set("cursor", cursorParam);
+      const res = await fetch(`${API_URL}/api/movies?${params}`);
+      const data = await res.json();
+      setMovies((prev) =>
+        cursorParam ? [...prev, ...data.movies] : data.movies
+      );
+      setCursor(data.nextCursor);
+      setHasMore(data.hasMore);
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
+    }
+  }, [API_URL]);
   const loadMoreRef = useCallback(
     (node) => {
-      if (loading) return;
       if (observerRef.current) observerRef.current.disconnect();
-  
+      if (!node) return;
       observerRef.current = new IntersectionObserver(
         (entries) => {
-          if (entries[0].isIntersecting && hasMore && !loading) {
-            fetchDBMovies(cursor)
+          if (entries[0].isIntersecting && hasMore && !loadingRef.current && cursor) {
+            fetchDBMovies(cursor);
           }
         },
-        { rootMargin: '100px' }
+        { rootMargin: "100px" }
       );
-  
-      if (node) observerRef.current.observe(node);
+      observerRef.current.observe(node);
     },
-    [cursor, hasMore, loading]
-  )
-  const fetchDBMovies = async (cursorParam = null) => {
-    if (loading) return;
-    setLoading(true);
-
-    const params = new URLSearchParams({ limit: '24' });
-    if (cursorParam) params.set('cursor', cursorParam);
-    const URL = `${API_URL}/api/movies?${params}`;
-    const res = await fetch(URL);
-    const data = await res.json();
-
-
-    setMovies((prev) => [...prev, ...data.movies]);
-    setCursor(data.nextCursor)
-    setHasMore(data.hasMore);
-    setLoading(false);
-  };
+    [cursor, hasMore, fetchDBMovies]
+  );
   useEffect(() => {
-    // Fetch movies from Flask API
     fetchDBMovies();
-  }, []);
+  }, [fetchDBMovies]);
 
   return (
     <div className="p-4">

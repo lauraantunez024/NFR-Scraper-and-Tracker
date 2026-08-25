@@ -63,7 +63,8 @@ def scrapeMovies():
                                 'LogoImage': None,
                                 'tmdb_id': None,
                                 'budget' : None,
-                                'tagline': None
+                                'tagline': None,
+                                'revenue': None
                                 
                                 }
                     if not movies_collection.find_one({"title": movie_data['title']}):
@@ -149,6 +150,7 @@ def addTmdbDetails(title):
             "country": countries or None,
             "budget": details.get("budget"),
             "tagline": details.get("tagline"),
+            "revenue": details.get("revenue"),
             "posterImage": build_poster_url(images, details),
             "LogoImage": build_logo_url(images)
         }
@@ -198,8 +200,9 @@ def tmdb_fields_from_details(details):
         "genre": genres or None,
         "country": countries or None,
         "budget": details.get("budget"),
-        "tagline": details.get("tagline") or "",  # "" = fetched, none exists
+        "tagline": details.get("tagline"), 
         "tmdb_id": details.get("id"),
+        "revenue": details.get("revenue")
     }
     
 def missing_field_query(fields):
@@ -242,9 +245,9 @@ def backfill_tmdb_fields(field_names=None):
                 {"_id": movie["_id"]},
                 {"$set": update}
             )
+            print(f" yayyyy we backfilled {list(update)} -> for {movie['title']}")
         except Exception as e:
             print(f"Failed for {movie.get('title')}: {e}")    
-    print(f" yayyyy we backfilled {list(update)} -> for {movie['title']}")
 
 # Mark movies as watched and rate them from CLI
 
