@@ -140,16 +140,13 @@ def addTmdbDetails(title):
         genres = ", ".join(g["name"] for g in details.get("genres", []))
         countries = ", ".join(
             c["name"] for c in details.get("production_countries", [])
-        )
-        imdb_id = details.get("external_ids", {}).get("imdb_id")
-        
+        )        
         update = {
             "tmdb_id": tmdb_id,
             "plot": details.get("overview"),
             "runtime": f"{details.get('runtime')} min" if details.get("runtime") else None,
             "genre": genres or None,
             "country": countries or None,
-            "imDB_Rating": details.get("vote_average"),
             "budget": details.get("budget"),
             "posterImage": build_poster_url(images, details),
             "LogoImage": build_logo_url(images)
@@ -164,6 +161,29 @@ def enrich_all_tmdb():
     movies = movies_collection.find({"tmdb_id": None})
     for movie in movies:
         addTmdbDetails(movie["title"])
+
+def fetch_omdb(imdb_id):
+    url = 'http://www.omdbapi.com/'
+    payload = {
+        'i': imdb_id,
+        'apikey': OMDB_API_KEY
+    }
+    response = requests.get(url, params=payload)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return print(response.json())
+    
+
+          
+def addOmdbDetails(imdb_id): 
+    omdb_data = fetch_omdb(imdb_id)
+    id = omdb_data.get('imdbRating')
+    if id and omdb_data.get('Response') == 'True':
+        movies_collection.update_one({"imDB_ID": imdb_id}, {"$set": {"imDB_Rating": id}})
+        print(f"found and updated imdb rating for {omdb_data.get('Title')}")
+    else:
+        print(f"{omdb_data} could not be found")
 
 # Mark movies as watched and rate them from CLI
 
@@ -270,6 +290,7 @@ def main():
     parser.add_argument('-d', '--add_details', action='store_true')
     parser.add_argument('-u', '--update_details', help='Usage: --update_details "Movie Title"')
     parser.add_argument('-t', '--tmdb_details', help='Usage: --tmdb_details "imdb_id"')
+    parser.add_argument('-o', '--omdb_details', action='store_true')
     args = parser.parse_args()
     
     if args.scrape:
@@ -277,6 +298,11 @@ def main():
     
     if args.add_details:
         enrich_all_tmdb()
+    
+    if args.omdb_details:
+        movies = movies_collection.find()
+        for movie in movies:
+            addOmdbDetails(movie['imDB_ID'])
     
     if args.watched:
         watched_movie(args.watched)

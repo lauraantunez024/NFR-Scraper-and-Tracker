@@ -6,7 +6,7 @@ export default function MovieCard({ title, imdb_rating, year, movie_data }) {
   const [showDetails, setShowDetails] = useState(false);
   const logoPath = movie_data?.LogoImage;
   return (
-    <div className="min-w-[10vw] p-2 h-[40vh] bg-[#6776b5] lg:group-hover:bg-[#6776b5]/50 justify-around text-(--primary) rounded-md border-[#141414] border-x-4 border-y-2 border flex flex-col gap-4"
+    <div className="min-w-[10vw] p-2 h-[30vh] max-h-[15rem] bg-[#6776b5] lg:group-hover:bg-[#6776b5]/50 justify-around text-(--primary) rounded-md border-[#141414] border-x-4 border-y-2 border flex flex-col gap-4"
     onClick={() => setShowDetails((prev) => !prev)} tabIndex={0}>
 
       {logoPath ? (
