@@ -26,11 +26,11 @@ export default function MovieCard({ title, imdb_rating, year, movie_data }) {
 >
         <h1 className="text-center text-lg font-bold">{title}</h1>
         {/* <img className="p-4 flex shrink" src={logoPath} alt={title} /> */}
-        <div className="flex flex-row gap-4 m-auto">
+        <div className="flex flex-row gap-4 m-auto content-around">
           <p>imdb rating: {imdb_rating}</p>
           <p>year: {year}</p>
         </div>
-          <button type="button" onClick={(e) => { e.stopPropagation(); setShowModal(true)}}> button right here </button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setShowModal(true)}} className="underline"> More Info </button>
       </div>
 
           <MovieModal 

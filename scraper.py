@@ -29,7 +29,6 @@ db = client['movie_tracker']
 movies_collection = db['movies']
 tmdbUrl = f"https://api.themoviedb.org/3"
 
-
     
 # Scrape Website and add data to database
 def scrapeMovies():
@@ -64,6 +63,7 @@ def scrapeMovies():
                                 'LogoImage': None,
                                 'tmdb_id': None,
                                 'budget' : None,
+                                'tagline': None
                                 
                                 }
                     if not movies_collection.find_one({"title": movie_data['title']}):
@@ -84,7 +84,7 @@ def scrapeMovies():
 def tmdb_get(path, params=None):
     params = params or {}
     params["api_key"] = TMDB_API_KEY
-    response = requests.get(f"{tmdbUrl}{path}", params=params, timeout=15)
+    response = requests.get(f"{tmdbUrl}/{path.lstrip('/')}", params=params, timeout=15)
     response.raise_for_status()
     return response.json()
 
@@ -148,6 +148,7 @@ def addTmdbDetails(title):
             "genre": genres or None,
             "country": countries or None,
             "budget": details.get("budget"),
+            "tagline": details.get("tagline"),
             "posterImage": build_poster_url(images, details),
             "LogoImage": build_logo_url(images)
         }
@@ -184,6 +185,66 @@ def addOmdbDetails(imdb_id):
         print(f"found and updated imdb rating for {omdb_data.get('Title')}")
     else:
         print(f"{omdb_data} could not be found")
+        
+
+def tmdb_fields_from_details(details):
+    genres = ", ".join(g["name"] for g in details.get("genres", []))
+    countries = ", ".join(
+        c["name"] for c in details.get("production_countries", [])
+    )
+    return {
+        "plot": details.get("overview"),
+        "runtime": f"{details.get('runtime')} min" if details.get("runtime") else None,
+        "genre": genres or None,
+        "country": countries or None,
+        "budget": details.get("budget"),
+        "tagline": details.get("tagline") or "",  # "" = fetched, none exists
+        "tmdb_id": details.get("id"),
+    }
+    
+def missing_field_query(fields):
+    return {
+        "$or": [
+            {field: {"$exists": False}}
+            for field in fields 
+        ] + [
+            {field: None}
+            for field in fields
+        ]
+    }
+    
+def backfill_tmdb_fields(field_names=None):
+    field_names = field_names or ["tagline"]
+    movies = movies_collection.find(missing_field_query(field_names))
+    
+    for movie in movies:
+        try:
+            tmdb_id = movie.get("tmdb_id")
+            if not tmdb_id:
+                search_results = search_tmdb_movie(movie["title"], movie["year"])
+                if not search_results:
+                    print(f"no match for {movie["title"]}")
+                    continue
+                tmdb_id = search_results["id"]
+            
+            details = tmdb_get(f"/movie/{tmdb_id}")
+            payload = tmdb_fields_from_details(details)
+            
+            update = {
+                field: payload[field]
+                for field in field_names
+                if field in payload
+            }
+            if not movie.get("tmdb_id"):
+                update["tmdb_id"] = tmdb_id
+                
+            movies_collection.update_one(
+                {"_id": movie["_id"]},
+                {"$set": update}
+            )
+        except Exception as e:
+            print(f"Failed for {movie.get('title')}: {e}")    
+    print(f" yayyyy we backfilled {list(update)} -> for {movie['title']}")
 
 # Mark movies as watched and rate them from CLI
 
@@ -287,8 +348,8 @@ def main():
     parser.add_argument('-r', '--rate', type=str, nargs=3, metavar=('TITLE', 'RATING', 'COMMENTS'), help='Usage: --rate "Movie Title" 8 "Thoughts, critiques, etc"')
     parser.add_argument('-random', '--pick_random', action='store_true', help='pick a random unwatched movie')
     parser.add_argument('-y', '--pick_by_year', type=int, nargs=2, metavar=('yearX', 'yearY'), help='Usage: --pick_by_year 1990 2010')
+    parser.add_argument('-b', '--backfill', nargs="*", metavar="FIELD", help="dude we got so tired of dropping our db everytime we wanted more info. so here: --backfill <new field> OR --backfill")
     parser.add_argument('-d', '--add_details', action='store_true')
-    parser.add_argument('-u', '--update_details', help='Usage: --update_details "Movie Title"')
     parser.add_argument('-t', '--tmdb_details', help='Usage: --tmdb_details "imdb_id"')
     parser.add_argument('-o', '--omdb_details', action='store_true')
     args = parser.parse_args()
@@ -303,6 +364,10 @@ def main():
         movies = movies_collection.find()
         for movie in movies:
             addOmdbDetails(movie['imDB_ID'])
+            
+    if args.backfill:
+        fields = args.backfill
+        backfill_tmdb_fields(fields)
     
     if args.watched:
         watched_movie(args.watched)
