@@ -39,7 +39,6 @@ export default function Home() {
     const data = await res.json();
 
 
-    console.log(`Movies from database: ${data}`);
     setMovies((prev) => [...prev, ...data.movies]);
     setCursor(data.nextCursor)
     setHasMore(data.hasMore);
@@ -55,14 +54,15 @@ export default function Home() {
       <div className="flex flex-col gap-4 p-4 flex-wrap ">
         <h1 className="font-bold text-3xl">National Film Registry</h1>
         <div className="grid lg:grid-cols-4 grid-flow-row">
-          {movies.map((movie) => (
-            <div key={movie.title} className="flex flex-col group">
+          {movies.map((movie, i) => (
+            <div  className="flex flex-col group">
               <div className="sprockets flex justify-between px-2 py-1 bg-[#141414]">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <span key={i} className="p-2 w-2 h-2 bg-gray-500 rounded-[1px]" />
                 ))}
               </div>
               <MovieCard
+                key={i}
                 className=""
                 title={movie.title}
                 year={movie.year}
