@@ -36,6 +36,7 @@ export default function MovieCard({ title, imdb_rating, year, movie_data }) {
           <MovieModal 
           title={title}
           open={showModal}
+          year={year}
           plot={movie_data?.plot}
           poster={movie_data?.posterImage}
           onClose={() => setShowModal(false)}/>
